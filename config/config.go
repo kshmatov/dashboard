@@ -7,12 +7,15 @@ import (
 	"github.com/kshmatov/dashboard/types"
 )
 
+// Configuration stores configuration data for application
 type Configuration struct {
-	Server types.Server
+	Server   types.Server
 	Postgres types.Database
-	LogFile string
+	LogFile  string
 }
 
+// Init loads configuration data from file <fname>
+// Parser expects json in file
 func Init(fname string) (*Configuration, error) {
 	jconf, err := ioutil.ReadFile(fname)
 	if err != nil {
