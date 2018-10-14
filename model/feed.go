@@ -1,6 +1,8 @@
 package model
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -26,8 +28,21 @@ type Feeds struct {
 	current *feeds
 }
 
+func (f *Feeds)Item()*Feed{
+	if f.current == nil {
+		return nil
+	}
+	return  &f.current.feed
+}
+
 func (f *Feeds)Reset() {
 	f.current= f.first
+}
+
+
+func (f *Feeds)First() *Feed{
+	f.Reset()
+	return f.Item()
 }
 
 func (f *Feeds)Next()*Feed{
@@ -47,13 +62,15 @@ func (f *Feeds) add(fd Feed){
 		fs := feeds{feed: fd, next: nil}
 		f.current.next = &fs
 		f.last = f.current.next
+		f.current = f.last
 	}
 }
 
 func (f *Feeds)addHead(fd Feed) {
-	if f.current == nil{
+	if f.first == nil{
 		f.add(fd)
 	} else {
+		fmt.Printf("Current first: %v, new: %v\n", f.first.feed.sourceurl, fd.sourceurl)
 		fs := feeds{feed:fd, next: f.first}
 		f.first = &fs
 		f.current = &fs
@@ -96,7 +113,7 @@ func GetFirstN(limit int) (*Feeds, error) {
 }
 
 func GetFromTS(ts time.Time) (*Feeds, error) {
-	sql := "select evnc, tstamp, oageurl, sourceurl, sourceip from feed where ts > $1 order by tstamp"
+	sql := "select evnt, tstamp, pageurl, sourceurl, sourceip from feed where tstamp > $1 order by tstamp"
 	return fillFeeds(false, sql, ts)
 }
 
@@ -133,5 +150,37 @@ func fillFeeds(revers bool, q string, params ...interface{}) (*Feeds, error) {
 			res.add(fd)
 		}
 	}
+	res.Reset()
 	return &res, nil
+}
+
+func (f Feed)Event()*string {
+	return f.event
+}
+
+func (f Feed)PageUrl()*string{
+	return f.pageurl
+}
+
+func (f Feed)TStamp() time.Time{
+	return f.tstamp
+}
+
+func (f Feed)SourceIP()*string {
+	return f.sourceip
+}
+
+func (f Feed)SoureUrl()*string {
+	return f.sourceurl
+}
+
+func (f Feed)ToJson() []byte{
+	m := make(map[string]interface{})
+	m["event"] = f.event
+	m["tstamp"]	= f.tstamp
+	m["pageurl"] = f.pageurl
+	m["sourceurl"] = f.sourceurl
+	m["sourceip"] = f.sourceip
+	res, _:= json.Marshal(m)
+	return res
 }
